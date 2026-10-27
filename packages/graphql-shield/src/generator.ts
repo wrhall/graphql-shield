@@ -125,12 +125,10 @@ function applyRuleToType(
     /* Apply defined rule function to every field */
     const fieldMap = type.getFields()
 
-    const middleware = Object.keys(fieldMap).reduce((middleware, field) => {
-      return {
-        ...middleware,
-        [field]: generateFieldMiddlewareFromRule(rules, options),
-      }
-    }, {})
+    const middleware: IMiddleware = {}
+    for (const field of Object.keys(fieldMap)) {
+      middleware[field] = generateFieldMiddlewareFromRule(rules, options)
+    }
 
     return middleware
   } else if (isRuleFieldMap(rules)) {
@@ -155,29 +153,26 @@ function applyRuleToType(
 
     /* Generation */
 
-    const middleware = Object.keys(fieldMap).reduce(
-      (middleware, field) => ({
-        ...middleware,
-        [field]: generateFieldMiddlewareFromRule(
-          withDefault(defaultTypeRule || options.fallbackRule)(rules[field]),
-          options,
-        ),
-      }),
-      {},
-    )
+    const middleware: IMiddleware = {}
+    for (const field of Object.keys(fieldMap)) {
+      middleware[field] = generateFieldMiddlewareFromRule(
+        withDefault(defaultTypeRule || options.fallbackRule)(rules[field]),
+        options,
+      )
+    }
 
     return middleware
   } else {
     /* Apply fallbackRule to type with no defined rule */
     const fieldMap = type.getFields()
 
-    const middleware = Object.keys(fieldMap).reduce(
-      (middleware, field) => ({
-        ...middleware,
-        [field]: generateFieldMiddlewareFromRule(options.fallbackRule, options),
-      }),
-      {},
-    )
+    const middleware: IMiddleware = {}
+    for (const field of Object.keys(fieldMap)) {
+      middleware[field] = generateFieldMiddlewareFromRule(
+        options.fallbackRule,
+        options,
+      )
+    }
 
     return middleware
   }
@@ -199,20 +194,13 @@ function applyRuleToSchema(
 ): IMiddleware {
   const typeMap = schema.getTypeMap()
 
-  const middleware = Object.keys(typeMap)
-    .filter((type) => !isIntrospectionType(typeMap[type]))
-    .reduce((middleware, typeName) => {
-      const type = typeMap[typeName]
-
-      if (isObjectType(type)) {
-        return {
-          ...middleware,
-          [typeName]: applyRuleToType(type, rule, options),
-        }
-      } else {
-        return middleware
-      }
-    }, {})
+  const middleware: IMiddleware = {}
+  for (const typeName of Object.keys(typeMap)) {
+    const type = typeMap[typeName]
+    if (!isIntrospectionType(type) && isObjectType(type)) {
+      middleware[typeName] = applyRuleToType(type, rule, options)
+    }
+  }
 
   return middleware
 }
@@ -254,20 +242,13 @@ function generateMiddlewareFromSchemaAndRuleTree(
 
     // Generation
 
-    const middleware = Object.keys(typeMap)
-      .filter((type) => !isIntrospectionType(typeMap[type]))
-      .reduce<IMiddleware>((middleware, typeName) => {
-        const type = typeMap[typeName]
-
-        if (isObjectType(type)) {
-          return {
-            ...middleware,
-            [typeName]: applyRuleToType(type, rules[typeName], options),
-          }
-        } else {
-          return middleware
-        }
-      }, {})
+    const middleware: IMiddleware = {}
+    for (const typeName of Object.keys(typeMap)) {
+      const type = typeMap[typeName]
+      if (!isIntrospectionType(type) && isObjectType(type)) {
+        middleware[typeName] = applyRuleToType(type, rules[typeName], options)
+      }
+    }
 
     return middleware
   }
